@@ -1,0 +1,8 @@
+Flask
+yfinance
+numpy
+pandas
+tensorflow==2.10.0
+sklearn
+scikit-learn
+gunicorn
