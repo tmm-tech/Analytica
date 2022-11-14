@@ -57,7 +57,7 @@ def predict_value(ticker):
     regressor.compile(optimizer='adam', loss='mean_squared_error', metrics=['mean_absolute_error'])
     regressor.fit(x_train, y_train, epochs=100, batch_size=64)
     start_date = '2019-01-01'  # as strings
-    end_date = '2022-10-31'  # as strings
+    end_date = '2022-11-11'  # as strings
     dataset_test = yf.download(ticker, start_date, end_date)
     # Selecting the Open column that we’ll use in our modeling
     real_stock_price = dataset_test.iloc[:, 1:2].values
@@ -97,7 +97,6 @@ def predict_value(ticker):
     fut_inp = dataset_test[151:]
     fut_inp = fut_inp.values.reshape(1, -1)
     print(fut_inp.shape)
-
     len(train_set_scaled)
     ds_new = train_set_scaled.tolist()
 
