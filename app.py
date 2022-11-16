@@ -7,7 +7,7 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     print(__name__)
-    return '<h1>Analytica</h1>'
+    return 'Analytica'
 
 
 @app.route('/prediction/<stock>', methods=['POST'])

@@ -73,9 +73,6 @@ def predict_value(ticker):
     inputs = inputs.reshape(-1, 1)  # reshape to turn it into a vector
 
     inputs = normalizer.transform(inputs)  # AFINAL = usar aqui so transform ou fit_transform
-    # Normalization of the test set - Transform features by scaling each feature to a given range.
-    # Creating data with timesteps for the train_set_scaled
-    # timesteps ==>> checks 45 rows on each step on every sliding window
     x_test = []
     for i in range(45, len(dataset_test)):
         x_test.append(inputs[i - 45:i, 0])
