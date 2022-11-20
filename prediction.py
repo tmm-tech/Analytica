@@ -57,7 +57,7 @@ def predict_value(ticker):
     regressor.compile(optimizer='adam', loss='mean_squared_error', metrics=['mean_absolute_error'])
     regressor.fit(x_train, y_train, epochs=100, batch_size=64)
     start_date = '2019-01-01'  # as strings
-    end_date = '2022-11-11'  # as strings
+    end_date = '2022-11-18'  # as strings
     dataset_test = yf.download(ticker, start_date, end_date)
     # Selecting the Open column that we’ll use in our modeling
     real_stock_price = dataset_test.iloc[:, 1:2].values
@@ -107,11 +107,11 @@ def predict_value(ticker):
     print("Stock prediction in the next 30 days: " + answer)
     # This will compute the mean of the squared errors.
     # mean_squared_error = measures the average of the squares of the errors /
-    mlp_mse = mean_squared_error(real_stock_price[0:983], predicted_stock_price)
-    print("Accuracy with MSE: ", mlp_mse)
-    # Notice - if one of the errors is too big, it will impact the results a lot.
-    # This is why "mean absolute percentage error" is used as a great solution to calculate the error.
-    mlp_mae = mean_absolute_error(real_stock_price[0:983], predicted_stock_price)
-    print("Accuracy with MAE: ", mlp_mae)
+    # mlp_mse = mean_squared_error(real_stock_price[0:983], predicted_stock_price)
+    # print("Accuracy with MSE: ", mlp_mse)
+    # # Notice - if one of the errors is too big, it will impact the results a lot.
+    # # This is why "mean absolute percentage error" is used as a great solution to calculate the error.
+    # mlp_mae = mean_absolute_error(real_stock_price[0:983], predicted_stock_price)
+    # print("Accuracy with MAE: ", mlp_mae)
 
     return str(answer)

@@ -12,10 +12,11 @@ def home():
 
 @app.route('/prediction/<stock>', methods=['POST'])
 def predict(stock):
-
-    result = predict_value(stock)
-
-    return result
+    try:
+        result = predict_value(stock)
+        return result
+    except EOFError as e:
+           print(e)
 
 
 if __name__ == '__main__':
