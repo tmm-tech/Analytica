@@ -10,7 +10,7 @@ def home():
     return 'Analytica'
 
 
-@app.route('/prediction/<stock>', methods=['POST', 'GET'])
+@app.route('/prediction/<ticker>', methods=['POST', 'GET'])
 def predict_value(ticker):
     try:
 
