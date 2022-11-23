@@ -1,117 +1,162 @@
 import yfinance as yf
-import numpy as np
-import pandas as pd
-from tensorflow.python.keras.layers import LSTM
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.python.keras.layers import Dense
-from tensorflow.python.keras.models import Sequential
+
 
 
 def predict_value(ticker):
-    start_date = '2009-01-01'  # as strings
-    end_date = '2018-12-31'  # as strings
-    data = yf.download(ticker, start_date, end_date)
-    # type(data)
-    # initialize
+    data = yf.download(tickers=ticker, period='13y', interval='1d')
+
+    type(data)
+
+    # data.head()
+
+    # data.tail()
+
     opn = data[['Open']]
+
+    # opn.plot()
+
     ds = opn.values
+
+    # ds
+
+    # plt.plot(ds)
+
+    import numpy as np
+
+    from sklearn.preprocessing import MinMaxScaler
+
     # Using MinMaxScaler for normalizing data between 0 & 1
     normalizer = MinMaxScaler(feature_range=(0, 1))
     ds_scaled = normalizer.fit_transform(np.array(ds).reshape(-1, 1))
-    # length of the ds_scaled amd ds
-    # len(ds_scaled), len(ds)
-    # Selecting the Open column that we’ll be used in our modeling
-    dataset_train = data.iloc[:, 1:2].values
-    # notice ==>> df.iloc[:, 1:2] returns a dataframe whereas df.iloc[:, 1] returns a series notice ==>"Open" column is
-    # the starting price while the Close column is the final price of a stock on a particular trading day.
-    # Normalization of the training set - Transform features by scaling each feature to a given range.
-    normalizer = MinMaxScaler(feature_range=(0, 1))
-    train_set_scaled = normalizer.fit_transform(dataset_train)
-    # Creating data with timesteps for the train_set_scaled
-    # timesteps ==>> to train the algorithm, I will check 45 rows on each step
-    x_train = []
-    y_train = []
 
-    for i in range(45, len(ds_scaled)):
-        x_train.append(train_set_scaled[i - 45:i, 0])
-        # in other words => first iteration: [45-45:45, collumn index: 0] (from zero until 44)
-        # => segunda iteration: [46-45:46, collumn index: 0] (from 1 until 45)
-        # => segunda iteration: [47-45:47, collumn index: 0] (from 2 until 46)
-        y_train.append(train_set_scaled[i, 0])  # in other words => stores the index that it wants to predict
+    len(ds_scaled), len(ds)
 
-    x_train, y_train = np.array(x_train), np.array(y_train)  # I want the data to be in an numpy array
-    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
-    # Reshape method will create dimensions (it will have 3 dimensions: the two we had and one more)
-    # NOTICE == >> we have to reshape our data to 3D because tensorflow requires it to run
-    regressor = Sequential()
-    regressor.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-    regressor.add(LSTM(units=50, return_sequences=True))
-    regressor.add(LSTM(units=50))  # here i don't need the history cos I only need the result
+    # Defining test and train data sizes
+    train_size = int(len(ds_scaled) * 0.75)
+    test_size = len(ds_scaled) - train_size
 
-    # we add the Dense layer that specifies the output of 1 unit, the output is 1
-    regressor.add(Dense(units=1, activation='linear'))
-    # last layer is a dense layer with linear because I have continuous values
-    # we compile our model using the popular adam optimizer and set the loss as the mean_squarred_error.
-    regressor.compile(optimizer='adam', loss='mean_squared_error', metrics=['mean_absolute_error'])
-    regressor.fit(x_train, y_train, epochs=100, batch_size=64)
-    start_date = '2019-01-01'  # as strings
-    end_date = '2022-11-18'  # as strings
-    dataset_test = yf.download(ticker, start_date, end_date)
-    # Selecting the Open column that we’ll use in our modeling
-    real_stock_price = dataset_test.iloc[:, 1:2].values
-    # dataset_test
-    pd.DataFrame({'Open': dataset_train[0]})
+    train_size, test_size
 
-    pd.DataFrame(dataset_train)
+    # Splitting data between train and test
+    ds_train, ds_test = ds_scaled[0:train_size, :], ds_scaled[train_size:len(ds_scaled), :1]
 
-    dataset_totality = pd.concat((pd.DataFrame(dataset_train), dataset_test['Open']), axis=0)
+    len(ds_train), len(ds_test)
 
-    inputs = dataset_totality[len(dataset_totality) - len(dataset_test) - 45:].values
-    # No meu dataset total eu quero garantir q pego só as linhas do dataset treino.
-    inputs = inputs.reshape(-1, 1)  # reshape to turn it into a vector
+    # creating dataset in time series for LSTM model
+    # X[100,120,140,160,180] : Y[200]
+    def create_ds(dataset, step):
+        Xtrain, Ytrain = [], []
+        for i in range(len(dataset) - step - 1):
+            a = dataset[i:(i + step), 0]
+            Xtrain.append(a)
+            Ytrain.append(dataset[i + step, 0])
+        return np.array(Xtrain), np.array(Ytrain)
 
-    inputs = normalizer.transform(inputs)  # AFINAL = usar aqui so transform ou fit_transform
-    x_test = []
-    for i in range(45, len(dataset_test)):
-        x_test.append(inputs[i - 45:i, 0])
-        # in other words => [45-45:45, collumn index: 0]
+    # Taking 100 days price as one record for training
+    time_stamp = 100
+    X_train, y_train = create_ds(ds_train, time_stamp)
+    X_test, y_test = create_ds(ds_test, time_stamp)
 
-    x_test = np.array(x_test)
-    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+    from keras.models import Sequential
+    from keras.layers import Dense, LSTM
 
-    # NOTICE == >> we have to reshape our data to 3D DataFrame (panel) A data frame is a two-dimensional data structure,
-    # that is, the data is aligned in rows and columns in a table, a three-dimensional data structure is called panel.
+    # Creating LSTM model using keras
+    model = Sequential()
+    model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+    model.add(LSTM(units=50, return_sequences=True))
+    model.add(LSTM(units=50))
+    model.add(Dense(units=1, activation='linear'))
+    model.summary()
 
-    # Making the predictions
-    predicted_stock_price = regressor.predict(x_test)
-    # Get back the stock prices in normal readable format
-    predicted_stock_price = normalizer.inverse_transform(predicted_stock_price)
-    len(dataset_test)
+    # Training model with adam optimizer and mean squared error loss function
+    model.compile(loss='mean_squared_error', optimizer='adam')
+    model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=100, batch_size=64)
+
+    # PLotting loss, it shows that loss has decreased significantly and model trained well
+    # loss = model.history.history['loss']
+    # plt.plot(loss)
+
+    # Predicitng on train and test data
+    train_predict = model.predict(X_train)
+    test_predict = model.predict(X_test)
+
+    # Inverse transform to get actual value
+    train_predict = normalizer.inverse_transform(train_predict)
+    test_predict = normalizer.inverse_transform(test_predict)
+    # #Comparing using visuals
+    # plt.plot(normalizer.inverse_transform(ds_scaled))
+    # plt.plot(train_predict)
+    # plt.plot(test_predict)
+
+    type(train_predict)
+
+    test = np.vstack((train_predict, test_predict))
+
+    # #Combining the predited data to create uniform data visualization
+    # plt.plot(normalizer.inverse_transform(ds_scaled))
+    # plt.plot(test)
+
+    len(ds_test)
 
     # Getting the last 100 days records
-    fut_inp = dataset_test[151:]
-    fut_inp = fut_inp.values.reshape(1, -1)
+    fut_inp = ds_test[271:]
+
+    fut_inp = fut_inp.reshape(1, -1)
+    tmp_inp = list(fut_inp)
+    fut_inp.shape
     print(fut_inp.shape)
-    len(train_set_scaled)
-    ds_new = train_set_scaled.tolist()
+
+    # Predicting next 30 days price suing the current data
+    # It will predict in sliding window manner (algorithm) with stride 1
+    lst_output = []
+    n_steps = len(ds_test) - 271
+    i = 0
+    while i < 30:
+
+        if len(tmp_inp) > n_steps:
+            fut_inp = np.array(tmp_inp[1:])
+            fut_inp = fut_inp.reshape(1, -1)
+            fut_inp = fut_inp.reshape((1, n_steps, 1))
+            yhat = model.predict(fut_inp, verbose=0)
+            tmp_inp.extend(yhat[0].tolist())
+            tmp_inp = tmp_inp[1:]
+            lst_output.extend(yhat.tolist())
+            i = i + 1
+        else:
+            fut_inp = fut_inp.reshape((1, n_steps, 1))
+            yhat = model.predict(fut_inp, verbose=0)
+            tmp_inp.extend(yhat[0].tolist())
+            lst_output.extend(yhat.tolist())
+            i = i + 1
+
+    print(lst_output)
+
+    len(ds_scaled)
+
+    # # Creating a dummy plane to plot graph one after another
+    # # Creating a dummy plane to plot graph one after another
+    # plot_new = np.arange(1, 101)
+    # plot_pred = np.arange(101, 131)
+
+    # Creating list of the last 100 data
+    ds_new = ds_scaled.tolist()
 
     len(ds_new)
 
     # Entends helps us to fill the missing value with approx value
+    ds_new.extend(lst_output)
+    # plt.plot(ds_new[1200:])
+
     # Creating final data for plotting
     final_graph = normalizer.inverse_transform(ds_new).tolist()
-    # 30 days stock prediction
-    answer = format(round(float(*final_graph[len(final_graph) - 1]), 2))
-    print("Stock prediction in the next 30 days: " + answer)
-    # This will compute the mean of the squared errors.
-    # mean_squared_error = measures the average of the squares of the errors /
-    # mlp_mse = mean_squared_error(real_stock_price[0:983], predicted_stock_price)
-    # print("Accuracy with MSE: ", mlp_mse)
-    # # Notice - if one of the errors is too big, it will impact the results a lot.
-    # # This is why "mean absolute percentage error" is used as a great solution to calculate the error.
-    # mlp_mae = mean_absolute_error(real_stock_price[0:983], predicted_stock_price)
-    # print("Accuracy with MAE: ", mlp_mae)
 
+    # #Plotting final results with predicted value after 30 Days
+    # plt.plot(final_graph)
+    # plt.ylabel("Price")
+    # plt.xlabel("Time")
+    # plt.title("{0} prediction of next month open".format(stock_symbol))
+    # plt.axhline(y=final_graph[len(final_graph)-1], color = 'red', linestyle = ':', label = 'NEXT 30D: {0}'.format(round(float(*final_graph[len(final_graph)-1]),2)))
+    # plt.legend()
+
+    answer = format(round(float(*final_graph[len(final_graph) - 1]), 2))
     return str(answer)
