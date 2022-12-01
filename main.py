@@ -11,7 +11,7 @@ app = FastAPI()
 
 @app.get('/')
 def home():
-    return {"Home": "Analytica"}
+    return "Analytica"
 
 
 @app.get('/prediction/{ticker}')
@@ -156,7 +156,7 @@ def predict_value(ticker: str):
     final_graph = normalizer.inverse_transform(ds_new).tolist()
 
     answer = format(round(float(*final_graph[len(final_graph) - 1]), 2))
-    return {"Prediction": answer}
+    return answer
 
 
 if __name__ == "__main__":
