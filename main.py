@@ -1,21 +1,21 @@
 import uvicorn
-from fastapi import FastAPI
+from flask import Flask
 import yfinance as yf
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
 from keras.layers import Dense, LSTM
 
-app = FastAPI()
+app = Flask(__name__)
 
 
-@app.get('/')
+@app.route('/', method=['POST', 'GET'])
 def home():
     return "Analytica"
 
 
-@app.get('/prediction/{ticker}')
-def predict_value(ticker: str):
+@app.get('/prediction/<ticker>', method=['POST', 'GET'])
+def predict_value(ticker):
     data = yf.download(tickers=ticker, period='13y', interval='1d')
     type(data)
 
